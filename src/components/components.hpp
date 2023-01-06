@@ -1,15 +1,13 @@
 #pragma once
 
-#include "raylib.h"
-#include "raymath.h"
-
 #include <string>
+#include "./structs.hpp"
 
 namespace components {
     struct transform {
-        Vector3 position;
-        Vector3 scale;
-        Quaternion rotation;
+        structs::vector3 position;
+        structs::vector3 scale;
+        structs::vector3 rotation;
     };
 
     struct label {
@@ -22,7 +20,7 @@ namespace components {
     };
 
     struct rect {
-        Vector2 dimensions;
-        Color color;
+        structs::dimension2D dimensions;
+        structs::color color;
     };
 }

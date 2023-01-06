@@ -1,6 +1,6 @@
 [submodule "modules/entt"]
 	path = modules/entt
 	url = https://github.com/skypjack/entt.git
-[submodule "modules/raylib"]
-	path = modules/raylib
-	url = https://github.com/raysan5/raylib.git
+[submodule "modules/glfw"]
+	path = modules/glfw
+	url = https://github.com/glfw/glfw.git

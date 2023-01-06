@@ -1,24 +1,25 @@
 #include "player.hpp"
 #include "components/components.hpp"
-
-#include "raymath.h"
+#include "components/structs.hpp"
 
 #include <iostream>
 
 void setup_player(world& w) {
+    using structs::vector3, structs::dimension2D, structs::color;
+
     auto& registry = w.get_registry();
     auto entity = registry.create();
 
     registry.emplace<components::transform>(
         entity, 
-        Vector3 { 10, 10, 10 }, // posget
-        Vector3 { 1, 1, 1 }, // scl
-        QuaternionIdentity() // rot
+        vector3 { 10, 10, 10 }, // posget
+        vector3 { 1, 1, 1 }, // scl
+        vector3 { 0, 0, 0 }
     );
 
     registry.emplace<components::rect>(
         entity,
-        20, 20, RED
+        dimension2D{ 20, 20 }, color{ 255, 255, 255, 255 }
     );
 }
 
@@ -32,7 +33,7 @@ void update_player(world& w) {
 }
 
 void dispose_player(world& w) {
-
+    
 }
 
 void player::register_player(world& w) {
