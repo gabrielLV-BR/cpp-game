@@ -4,6 +4,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
+using core::world;
+
 void setup_renderer(world& w) {
 }
 

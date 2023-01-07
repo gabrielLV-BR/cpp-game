@@ -3,5 +3,5 @@
 #include "core/ecs/world.hpp"
 
 namespace player {
-    void register_player(world&);
+    void register_player(core::world&);
 };

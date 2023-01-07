@@ -3,5 +3,5 @@
 #include "core/ecs/world.hpp"
 
 namespace renderer {
-    void register_renderer(world&);
+    void register_renderer(core::world&);
 }

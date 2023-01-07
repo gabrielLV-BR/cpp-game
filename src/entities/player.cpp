@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+using core::world;
+
 void setup_player(world& w) {
     using structs::vector3, structs::dimension2D, structs::color;
 

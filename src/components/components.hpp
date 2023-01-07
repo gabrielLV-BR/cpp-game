@@ -19,8 +19,5 @@ namespace components {
         std::string title;
     };
 
-    struct rect {
-        structs::dimension2D dimensions;
-        structs::color color;
-    };
+    struct vulkan_details {};
 }

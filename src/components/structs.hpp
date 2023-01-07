@@ -64,4 +64,9 @@ namespace structs {
         float r, g, b, a;
     };
 
+    struct rect {
+        dimension2D dimensions;
+        color color;
+    };
+
 }

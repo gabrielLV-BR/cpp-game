@@ -5,6 +5,15 @@
 #include <vector>
 #include <string>
 
+using namespace core;
+
+vkapp::vkapp(GLFWwindow* window) {
+    this->create_instance();
+    this->query_physical_device();
+    this->create_logical_device();
+    //TODO fill in initialization order
+}
+
 vkapp::~vkapp() {
     // destroy every object
 }
@@ -32,7 +41,7 @@ void vkapp::create_instance(){
     instance_create_info.enabledExtensionCount = required_extension_count;
     instance_create_info.ppEnabledExtensionNames = required_extension_names;
 
-    vector<const char*> enabledLayers = {};
+    vector<const char*> enabledLayers{};
     instance_create_info.enabledLayerCount = enabledLayers.size();
     instance_create_info.ppEnabledLayerNames = enabledLayers.data();
 
@@ -41,9 +50,25 @@ void vkapp::create_instance(){
     );
 }
 
-void vkapp::query_physical_device(){}
+void vkapp::query_physical_device(){
+    
+}
 
-void vkapp::create_logical_device(){}
+void vkapp::create_logical_device(){
+    VkDeviceCreateInfo device_create_info{};
+    device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+    //
+
+    VK_ASSERT(
+        vkCreateDevice(
+            physical_device, 
+            &device_create_info, 
+            nullptr, 
+            &device
+        )
+    );
+}
 
 void vkapp::create_swapchain(){}
 
@@ -54,3 +79,8 @@ void vkapp::create_framebuffer(){}
 void vkapp::create_render_pass(){}
 
 void vkapp::create_pipeline(){}
+
+components::vulkan_details vkapp::get_details() {
+    //TODO return struct with details
+    return {};
+}
