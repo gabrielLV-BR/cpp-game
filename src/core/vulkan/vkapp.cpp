@@ -23,12 +23,15 @@ const std::vector<const char*> validation_layers = {
 vkapp::vkapp(GLFWwindow* window) {
     this->create_instance();
     this->query_physical_device();
+    this->get_queue_family_indices();
     this->create_logical_device();
     //TODO fill in initialization order
 }
 
 vkapp::~vkapp() {
     // destroy every object
+    vkDestroyDevice(device, nullptr);
+    vkDestroyInstance(instance, nullptr);
 }
 
 void vkapp::create_instance(){
@@ -68,6 +71,8 @@ void vkapp::create_instance(){
     VK_ASSERT(
         vkCreateInstance(&instance_create_info, nullptr, &instance)
     );
+
+    ASSERT(family_indices.is_complete(), "Device does not have every queue required");
 }
 
 void vkapp::query_physical_device(){
@@ -82,9 +87,16 @@ void vkapp::query_physical_device(){
     bool found_device = false;
     for(auto device : devices) {
         VkPhysicalDeviceProperties physical_device_properties{};
+        VkPhysicalDeviceFeatures physical_device_features{};
+
         vkGetPhysicalDeviceProperties(device, &physical_device_properties);
-        if(physical_device_properties.deviceType ==
-            VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+        vkGetPhysicalDeviceFeatures(device, &physical_device_features);
+        
+        //TODO Less dumb way of picking physical device, eg. scoring
+        if(
+            physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && 
+            physical_device_features.geometryShader
+        ) {
             physical_device = device;
             found_device = true;
             break;
@@ -94,11 +106,61 @@ void vkapp::query_physical_device(){
     if(!found_device) physical_device = devices[0];
 }
 
-void vkapp::create_logical_device(){
+void vkapp::get_queue_family_indices() {
+    using std::vector;
+
+    uint32_t queue_family_count;
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
+
+    vector<VkQueueFamilyProperties> queue_family_properties(queue_family_count); 
+    vkGetPhysicalDeviceQueueFamilyProperties(
+        physical_device, 
+        &queue_family_count, 
+        queue_family_properties.data()
+    );
+
+    int i = 0;
+    for(auto& queue_family : queue_family_properties) {
+        if(queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            family_indices.graphics_family = i;
+        i++;
+    }
+}
+
+void vkapp::create_logical_device(){    
+    // info about how many queues we want from each queue family
+    // for now, we only care about graphics
+    // since it's just one, i could've just have created a simple
+    // variable instead of an array
+    // i made it like this so it is more _semantic_
+    VkDeviceQueueCreateInfo device_queue_create_infos[1];
+    device_queue_create_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    device_queue_create_infos[0].queueFamilyIndex = family_indices.graphics_family.value();
+    device_queue_create_infos[0].queueCount = 1;
+
+    float queue_priority = 1.0f;
+    device_queue_create_infos[0].pQueuePriorities = &queue_priority;
+
+    // we won't need this for now, but in the future we'll use
+    // them to query for availability of features such as 
+    // geometry shaders
+    VkPhysicalDeviceFeatures physical_device_features{};
+
+    // 
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    device_create_info.pQueueCreateInfos = device_queue_create_infos;
+    device_create_info.queueCreateInfoCount = 1;
+    device_create_info.pEnabledFeatures = &physical_device_features;
+    device_create_info.enabledExtensionCount = 0;
 
-    //
+    if(use_validation_layers) {
+        device_create_info.enabledLayerCount   = validation_layers.size();
+        device_create_info.ppEnabledLayerNames = validation_layers.data();
+    } else {
+        device_create_info.enabledLayerCount   = 0;
+        device_create_info.ppEnabledLayerNames = nullptr;
+    }
 
     VK_ASSERT(
         vkCreateDevice(
@@ -108,6 +170,10 @@ void vkapp::create_logical_device(){
             &device
         )
     );
+
+    // get actual queues from indices
+
+    vkGetDeviceQueue(device, family_indices.graphics_family.value(), 0, &graphics_queue);
 }
 
 void vkapp::create_swapchain(){}
