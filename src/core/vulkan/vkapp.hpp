@@ -10,7 +10,7 @@ namespace core
     class vkapp
     {
     public:
-        VkInstance instance_handle;
+        VkInstance instance;
         VkPhysicalDevice physical_device;
         VkDevice device;
         VkSwapchainKHR swapchain;

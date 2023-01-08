@@ -66,7 +66,7 @@ namespace structs {
 
     struct rect {
         dimension2D dimensions;
-        color color;
+        struct color color;
     };
 
 }

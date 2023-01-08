@@ -7,19 +7,24 @@
 using core::world;
 
 void setup_player(world& w) {
-    using structs::vector3, structs::dimension2D, structs::color;
+    using 
+        structs::vector3, 
+        structs::dimension2D, 
+        structs::color,
+        structs::rect,
+        components::transform;        
 
     auto& registry = w.get_registry();
     auto entity = registry.create();
 
-    registry.emplace<components::transform>(
+    registry.emplace<transform>(
         entity, 
         vector3 { 10, 10, 10 }, // posget
         vector3 { 1, 1, 1 }, // scl
         vector3 { 0, 0, 0 }
     );
 
-    registry.emplace<components::rect>(
+    registry.emplace<rect>(
         entity,
         dimension2D{ 20, 20 }, color{ 255, 255, 255, 255 }
     );
@@ -30,7 +35,7 @@ void update_player(world& w) {
     auto view = registry.view<const components::transform>();
 
     for (auto [entity, transform] : view.each()) {
-        std::cout << "player at X : " << transform.position.x << "\n";
+        // std::cout << "player at X : " << transform.position.x << "\n";
     }
 }
 

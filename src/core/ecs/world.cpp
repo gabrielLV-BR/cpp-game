@@ -1,5 +1,7 @@
 #include "world.hpp"
 
+using namespace core;
+
 world::world()
     : _registry(), _world_entity() 
 {

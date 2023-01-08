@@ -4,6 +4,8 @@ project(MyGame VERSION 0.0)
 add_subdirectory("${CMAKE_SOURCE_DIR}/modules/entt")
 add_subdirectory("${CMAKE_SOURCE_DIR}/modules/glfw")
 
+find_package(Vulkan REQUIRED)
+
 add_executable(
 	${PROJECT_NAME}
 	src/main.cpp
@@ -32,4 +34,4 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE ASSETS="${CMAKE_SOURCE_DIR}/a
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/src/")
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/modules/entt/src/")
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw Vulkan::Vulkan)

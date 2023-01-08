@@ -35,7 +35,7 @@ int main() {
 
     // VULKAN context
 
-    core::vkapp vulkan_app;
+    core::vkapp vulkan_app(window);
     world.insert_resource<components::vulkan_details>(vulkan_app.get_details());
     
     // ENTITIES & COMPONENTS
