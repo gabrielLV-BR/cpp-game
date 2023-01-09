@@ -17,17 +17,21 @@ namespace core
         }
     };
 
+    struct swapchain_details {
+        VkSwapchainKHR handle;
+    };
+
     class vkapp
     {
     public:
         VkInstance instance;
         VkPhysicalDevice physical_device;
         VkDevice device;
-        VkSwapchainKHR swapchain;
         VkRenderPass render_pass;
 
         VkQueue graphics_queue;
         queue_family_indices family_indices;
+        swapchain_details swapchain;
 
         vkapp(GLFWwindow*);
         ~vkapp();

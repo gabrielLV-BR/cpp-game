@@ -31,31 +31,31 @@ int main() {
     std::string title = "Hello, World!";
     GLFWwindow* window = glfwCreateWindow(width, height, title.c_str(), 0, 0);
 
-    world.insert_resource<components::window_details>(width, height, title);
+    // world.insert_resource<components::window_details>(width, height, title);
 
     // VULKAN context
 
     core::vkapp vulkan_app(window);
-    world.insert_resource<components::vulkan_details>(vulkan_app.get_details());
+    // world.insert_resource<components::vulkan_details>(vulkan_app.get_details());
     
     // ENTITIES & COMPONENTS
 
-    player::register_player(world);
-    renderer::register_renderer(world);
+    // player::register_player(world);
+    // renderer::register_renderer(world);
 
     // Main loop
 
     const float TARGET_FPS = 60;
-    world.tick_startup();
+    // world.tick_startup();
     while(glfwWindowShouldClose(window) != GLFW_TRUE) {
-        world.tick_update(1/TARGET_FPS);
+        // world.tick_update(1/TARGET_FPS);
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
 
     // Cleanup
 
-    world.tick_dispose();
+    // world.tick_dispose();
     glfwDestroyWindow(window);
     
     return 0;

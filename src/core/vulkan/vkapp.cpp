@@ -39,7 +39,7 @@ void vkapp::create_instance(){
 
     VkApplicationInfo app_create_info{};
     app_create_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_create_info.apiVersion = VK_VERSION_1_3;
+    app_create_info.apiVersion = VK_API_VERSION_1_3;
     app_create_info.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
     app_create_info.pApplicationName = "game";
     app_create_info.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
@@ -72,7 +72,7 @@ void vkapp::create_instance(){
         vkCreateInstance(&instance_create_info, nullptr, &instance)
     );
 
-    ASSERT(family_indices.is_complete(), "Device does not have every queue required");
+    LOG("Instance created");
 }
 
 void vkapp::query_physical_device(){
@@ -112,6 +112,8 @@ void vkapp::get_queue_family_indices() {
     uint32_t queue_family_count;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
 
+    ASSERT(queue_family_count > 0, "No queue family available");
+
     vector<VkQueueFamilyProperties> queue_family_properties(queue_family_count); 
     vkGetPhysicalDeviceQueueFamilyProperties(
         physical_device, 
@@ -125,21 +127,20 @@ void vkapp::get_queue_family_indices() {
             family_indices.graphics_family = i;
         i++;
     }
+
+    ASSERT(family_indices.is_complete(), "Required family indices not provided entirely");
 }
 
 void vkapp::create_logical_device(){    
     // info about how many queues we want from each queue family
     // for now, we only care about graphics
-    // since it's just one, i could've just have created a simple
-    // variable instead of an array
-    // i made it like this so it is more _semantic_
-    VkDeviceQueueCreateInfo device_queue_create_infos[1];
-    device_queue_create_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    device_queue_create_infos[0].queueFamilyIndex = family_indices.graphics_family.value();
-    device_queue_create_infos[0].queueCount = 1;
+    VkDeviceQueueCreateInfo device_queue_create_info{};
+    device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    device_queue_create_info.queueFamilyIndex = family_indices.graphics_family.value();
+    device_queue_create_info.queueCount = 1;
 
     float queue_priority = 1.0f;
-    device_queue_create_infos[0].pQueuePriorities = &queue_priority;
+    device_queue_create_info.pQueuePriorities = &queue_priority;
 
     // we won't need this for now, but in the future we'll use
     // them to query for availability of features such as 
@@ -149,7 +150,7 @@ void vkapp::create_logical_device(){
     // 
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    device_create_info.pQueueCreateInfos = device_queue_create_infos;
+    device_create_info.pQueueCreateInfos = &device_queue_create_info;
     device_create_info.queueCreateInfoCount = 1;
     device_create_info.pEnabledFeatures = &physical_device_features;
     device_create_info.enabledExtensionCount = 0;
@@ -176,7 +177,9 @@ void vkapp::create_logical_device(){
     vkGetDeviceQueue(device, family_indices.graphics_family.value(), 0, &graphics_queue);
 }
 
-void vkapp::create_swapchain(){}
+void vkapp::create_swapchain() {
+    
+}
 
 void vkapp::create_image_view(){}
 

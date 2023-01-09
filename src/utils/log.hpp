@@ -2,10 +2,15 @@
 
 #ifndef NDEBUG 
 
-  #include <iostream>
-  #define LOG(x) \
-    std::cout << "\"" << x << "\"\n\t- at " << __FILE__ << ":" << __LINE__ << "\n";
+  #include <stdio.h>
+
+  #define LOG(x, args...) \
+    printf(x, ##args); printf("\n");
+  
+  #define LOG_AT(x, args...) \
+    printf(x, ##args); printf("\n\t- at %s:%s\n", __FILE__, __LINE__);
 
 #else
   #define LOG(x)
+  #define LOG_AT(x)
 #endif
