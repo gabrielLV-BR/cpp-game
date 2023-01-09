@@ -10,10 +10,12 @@ namespace core
 {
     struct queue_family_indices {
         std::optional<uint32_t> graphics_family;
+        std::optional<uint32_t> present_family;
 
         // must keep filling with important queue families
         bool is_complete() {
-            return graphics_family.has_value();
+            return graphics_family.has_value() &&
+                present_family.has_value();
         }
     };
 
@@ -27,9 +29,12 @@ namespace core
         VkInstance instance;
         VkPhysicalDevice physical_device;
         VkDevice device;
+        VkSurfaceKHR surface;
         VkRenderPass render_pass;
 
         VkQueue graphics_queue;
+        VkQueue present_queue;
+
         queue_family_indices family_indices;
         swapchain_details swapchain;
 
@@ -40,6 +45,7 @@ namespace core
         void query_physical_device();
         void get_queue_family_indices();
         void create_logical_device();
+        void create_surface(GLFWwindow*);
         void create_swapchain();
         void create_image_view();
         void create_framebuffer();

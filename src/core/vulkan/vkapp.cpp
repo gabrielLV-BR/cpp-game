@@ -4,6 +4,7 @@
 #include "utils/assert.hpp"
 #include "utils/log.hpp"
 
+#include <unordered_set>
 #include <vector>
 #include <string>
 #include <memory>
@@ -12,6 +13,10 @@ using namespace core;
 
 const std::vector<const char*> validation_layers = {
     "VK_LAYER_KHRONOS_validation" // validation layer
+};
+
+const std::vector<const char*> device_extensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 #ifdef NDEBUG
@@ -25,11 +30,13 @@ vkapp::vkapp(GLFWwindow* window) {
     this->query_physical_device();
     this->get_queue_family_indices();
     this->create_logical_device();
+    this->create_surface(window);
     //TODO fill in initialization order
 }
 
 vkapp::~vkapp() {
     // destroy every object
+    vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
 }
@@ -110,11 +117,17 @@ void vkapp::get_queue_family_indices() {
     using std::vector;
 
     uint32_t queue_family_count;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(
+        physical_device, 
+        &queue_family_count, 
+        nullptr
+    );
 
     ASSERT(queue_family_count > 0, "No queue family available");
 
-    vector<VkQueueFamilyProperties> queue_family_properties(queue_family_count); 
+    vector<VkQueueFamilyProperties> 
+        queue_family_properties(queue_family_count); 
+
     vkGetPhysicalDeviceQueueFamilyProperties(
         physical_device, 
         &queue_family_count, 
@@ -123,24 +136,48 @@ void vkapp::get_queue_family_indices() {
 
     int i = 0;
     for(auto& queue_family : queue_family_properties) {
-        if(queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            family_indices.graphics_family = i;
+
+        VkBool32 is_present_family = VK_FALSE;
+        vkGetPhysicalDeviceSurfaceSupportKHR(
+            physical_device, 
+            i, 
+            surface, 
+            &is_present_family
+        );
+
+        if(is_present_family == VK_TRUE)                    family_indices.present_family = i;
+        if(queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) family_indices.graphics_family = i;
+        
         i++;
     }
 
-    ASSERT(family_indices.is_complete(), "Required family indices not provided entirely");
+    ASSERT(
+        family_indices.is_complete(), 
+        "Required family indices not provided entirely"
+    );
 }
 
 void vkapp::create_logical_device(){    
+    
+    using std::vector, std::unordered_set;
+
     // info about how many queues we want from each queue family
     // for now, we only care about graphics
-    VkDeviceQueueCreateInfo device_queue_create_info{};
-    device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    device_queue_create_info.queueFamilyIndex = family_indices.graphics_family.value();
-    device_queue_create_info.queueCount = 1;
-
+    vector<VkDeviceQueueCreateInfo> device_queue_create_infos{};
+    unordered_set<uint32_t> unique_queue_family_indices = {
+        family_indices.graphics_family.value(),
+        family_indices.present_family.value()
+    };
     float queue_priority = 1.0f;
-    device_queue_create_info.pQueuePriorities = &queue_priority;
+    for(auto unique_family_index : unique_queue_family_indices) {
+        VkDeviceQueueCreateInfo device_queue_create_info{};
+        device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        device_queue_create_info.queueFamilyIndex = unique_family_index;
+        device_queue_create_info.queueCount = 1;
+        device_queue_create_info.pQueuePriorities = &queue_priority;
+    
+        device_queue_create_infos.push_back(device_queue_create_info);
+    }
 
     // we won't need this for now, but in the future we'll use
     // them to query for availability of features such as 
@@ -150,8 +187,8 @@ void vkapp::create_logical_device(){
     // 
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    device_create_info.pQueueCreateInfos = &device_queue_create_info;
-    device_create_info.queueCreateInfoCount = 1;
+    device_create_info.pQueueCreateInfos = device_queue_create_infos.data();
+    device_create_info.queueCreateInfoCount = device_queue_create_infos.size();
     device_create_info.pEnabledFeatures = &physical_device_features;
     device_create_info.enabledExtensionCount = 0;
 
@@ -173,8 +210,19 @@ void vkapp::create_logical_device(){
     );
 
     // get actual queues from indices
-
     vkGetDeviceQueue(device, family_indices.graphics_family.value(), 0, &graphics_queue);
+    vkGetDeviceQueue(device, family_indices.present_family.value(),  0, &present_queue);
+}
+
+void vkapp::create_surface(GLFWwindow* window) {
+    VK_ASSERT(
+        glfwCreateWindowSurface(
+            instance,
+            window,
+            nullptr,
+            &surface
+        )
+    );
 }
 
 void vkapp::create_swapchain() {
