@@ -3,6 +3,7 @@
 
 #include "utils/assert.hpp"
 #include "utils/log.hpp"
+#include "utils/list.hpp"
 
 #include <unordered_set>
 #include <vector>
@@ -31,6 +32,7 @@ vkapp::vkapp(GLFWwindow* window) {
     this->get_queue_family_indices();
     this->create_logical_device();
     this->create_surface(window);
+    this->create_swapchain(window);
     //TODO fill in initialization order
 }
 
@@ -92,25 +94,8 @@ void vkapp::query_physical_device(){
     vkEnumeratePhysicalDevices(instance, &physical_device_count, devices.data());
 
     bool found_device = false;
-    for(auto device : devices) {
-        VkPhysicalDeviceProperties physical_device_properties{};
-        VkPhysicalDeviceFeatures physical_device_features{};
 
-        vkGetPhysicalDeviceProperties(device, &physical_device_properties);
-        vkGetPhysicalDeviceFeatures(device, &physical_device_features);
-        
-        //TODO Less dumb way of picking physical device, eg. scoring
-        if(
-            physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && 
-            physical_device_features.geometryShader
-        ) {
-            physical_device = device;
-            found_device = true;
-            break;
-        }    
-    }
-
-    if(!found_device) physical_device = devices[0];
+    auto found_device = pick_physical_device(devices);
 }
 
 void vkapp::get_queue_family_indices() {
@@ -162,7 +147,6 @@ void vkapp::create_logical_device(){
     using std::vector, std::unordered_set;
 
     // info about how many queues we want from each queue family
-    // for now, we only care about graphics
     vector<VkDeviceQueueCreateInfo> device_queue_create_infos{};
     unordered_set<uint32_t> unique_queue_family_indices = {
         family_indices.graphics_family.value(),
@@ -180,8 +164,7 @@ void vkapp::create_logical_device(){
     }
 
     // we won't need this for now, but in the future we'll use
-    // them to query for availability of features such as 
-    // geometry shaders
+    // them to specify required features such as geometry shaders
     VkPhysicalDeviceFeatures physical_device_features{};
 
     // 
@@ -190,7 +173,9 @@ void vkapp::create_logical_device(){
     device_create_info.pQueueCreateInfos = device_queue_create_infos.data();
     device_create_info.queueCreateInfoCount = device_queue_create_infos.size();
     device_create_info.pEnabledFeatures = &physical_device_features;
-    device_create_info.enabledExtensionCount = 0;
+
+    device_create_info.ppEnabledExtensionNames = device_extensions.data();
+    device_create_info.enabledExtensionCount   = device_extensions.size();
 
     if(use_validation_layers) {
         device_create_info.enabledLayerCount   = validation_layers.size();
@@ -225,8 +210,55 @@ void vkapp::create_surface(GLFWwindow* window) {
     );
 }
 
-void vkapp::create_swapchain() {
+void vkapp::create_swapchain(GLFWwindow* window) {
+    using std::vector;
+
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
     
+    VkSwapchainCreateInfoKHR swapchain_create_info{};
+    swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    
+    // we must check for an adequate swapchain, as well
+    // as the best format, extent and present_mode available
+
+    VkSurfaceCapabilitiesKHR surface_capabilities{};
+    vector<VkSurfaceFormatKHR> formats;
+    vector<VkPresentModeKHR> present_modes;
+
+    /* format */ {
+        uint32_t format_count;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &format_count, nullptr);
+        formats.resize(format_count);    
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &format_count, formats.data());
+    }
+    /* present_modes */ {
+        uint32_t present_mode_count;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &present_mode_count, nullptr);
+        present_modes.resize(present_mode_count);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, nullptr, present_modes.data());
+    }
+    /* surface capabilities */ {
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
+    }
+
+    auto swapchain_properties = pick_swapchain_properties(window, surface_capabilities, formats, present_modes);
+
+    ASSERT(swapchain_properties.is_complete(), "Swapchain properties was not complete");
+
+    swapchain_create_info.imageExtent = swapchain_properties.extent.value();
+    swapchain_create_info.presentMode = swapchain_properties.present_mode.value();
+    swapchain_create_info.imageFormat = swapchain_properties.format.value().format;
+    swapchain_create_info.imageColorSpace = swapchain_properties.format.value().colorSpace;
+
+    VK_ASSERT(
+        vkCreateSwapchainKHR(
+            device, 
+            &swapchain_create_info, 
+            nullptr, 
+            &swapchain.handle
+        )
+    );
 }
 
 void vkapp::create_image_view(){}
@@ -240,4 +272,36 @@ void vkapp::create_pipeline(){}
 components::vulkan_details vkapp::get_details() {
     //TODO return struct with details
     return {};
+}
+
+//
+
+std::optional<VkPhysicalDevice> vkapp::pick_physical_device(std::vector<VkPhysicalDevice> available_devices) {
+    for(auto physical_device : available_devices) {
+        VkPhysicalDeviceProperties physical_device_properties{};
+        VkPhysicalDeviceFeatures physical_device_features{};
+
+        vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
+        vkGetPhysicalDeviceFeatures(physical_device, &physical_device_features);
+        
+        //TODO Less dumb way of picking physical device, eg. scoring
+        if(
+            physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && 
+            physical_device_features.geometryShader &&
+            vkutils::check_device_extension_support(physical_device, device_extensions)
+        ) {
+            return { physical_device };
+        }    
+    }
+
+    return {};
+}
+swapchain_properties pick_swapchain_properties(
+    GLFWwindow* window,
+    VkSurfaceCapabilitiesKHR &surface_capabilities,
+    std::vector<VkSurfaceFormatKHR> formats,
+    std::vector<VkPresentModeKHR> present_modes
+) {
+    swapchain_properties properties{};
+    return properties;
 }
