@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <string.h>
 
@@ -20,12 +22,10 @@ namespace utils::list {
             bool has_found = false;
 
             for(auto& el : hay) {
-                if(compare(el, needle)) goto BREAK_OUTER;
+                has_found |= compare(el, needle);
             }
 
-            return false;
-
-        BREAK_OUTER:
+            if(!has_found) return false;
         }
         return true;
     }

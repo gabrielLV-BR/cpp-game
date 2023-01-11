@@ -1,16 +1,15 @@
 #include "./vkapp.hpp"
 #include "./vkutils.hpp"
 
-#include "utils/assert.hpp"
 #include "utils/log.hpp"
 #include "utils/list.hpp"
+#include "utils/assert.hpp"
+#include "core/vulkan/vkstructs.hpp"
 
-#include <unordered_set>
 #include <vector>
 #include <string>
 #include <memory>
-
-using namespace core;
+#include <unordered_set>
 
 const std::vector<const char*> validation_layers = {
     "VK_LAYER_KHRONOS_validation" // validation layer
@@ -26,18 +25,21 @@ const std::vector<const char*> device_extensions = {
     const bool use_validation_layers = true;
 #endif
 
+using namespace core;
+
 vkapp::vkapp(GLFWwindow* window) {
     this->create_instance();
     this->query_physical_device();
-    this->get_queue_family_indices();
-    this->create_logical_device();
     this->create_surface(window);
-    this->create_swapchain(window);
+    family_indices = vkutils::get_queue_family_indices(physical_device, surface);
+    this->create_logical_device();
+    swapchain = vkswapchain(window, instance, physical_device, device, surface);
     //TODO fill in initialization order
 }
 
 vkapp::~vkapp() {
     // destroy every object
+    swapchain.destroy();
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
@@ -93,57 +95,14 @@ void vkapp::query_physical_device(){
     std::vector<VkPhysicalDevice> devices(physical_device_count);
     vkEnumeratePhysicalDevices(instance, &physical_device_count, devices.data());
 
-    bool found_device = false;
-
     auto found_device = pick_physical_device(devices);
-}
 
-void vkapp::get_queue_family_indices() {
-    using std::vector;
+    ASSERT(found_device.has_value(), "Could not find Physical Device");
 
-    uint32_t queue_family_count;
-    vkGetPhysicalDeviceQueueFamilyProperties(
-        physical_device, 
-        &queue_family_count, 
-        nullptr
-    );
-
-    ASSERT(queue_family_count > 0, "No queue family available");
-
-    vector<VkQueueFamilyProperties> 
-        queue_family_properties(queue_family_count); 
-
-    vkGetPhysicalDeviceQueueFamilyProperties(
-        physical_device, 
-        &queue_family_count, 
-        queue_family_properties.data()
-    );
-
-    int i = 0;
-    for(auto& queue_family : queue_family_properties) {
-
-        VkBool32 is_present_family = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(
-            physical_device, 
-            i, 
-            surface, 
-            &is_present_family
-        );
-
-        if(is_present_family == VK_TRUE)                    family_indices.present_family = i;
-        if(queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) family_indices.graphics_family = i;
-        
-        i++;
-    }
-
-    ASSERT(
-        family_indices.is_complete(), 
-        "Required family indices not provided entirely"
-    );
+    physical_device = found_device.value();
 }
 
 void vkapp::create_logical_device(){    
-    
     using std::vector, std::unordered_set;
 
     // info about how many queues we want from each queue family
@@ -204,61 +163,11 @@ void vkapp::create_surface(GLFWwindow* window) {
         glfwCreateWindowSurface(
             instance,
             window,
-            nullptr,
+            NULL,
             &surface
         )
     );
-}
-
-void vkapp::create_swapchain(GLFWwindow* window) {
-    using std::vector;
-
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
-    
-    VkSwapchainCreateInfoKHR swapchain_create_info{};
-    swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    
-    // we must check for an adequate swapchain, as well
-    // as the best format, extent and present_mode available
-
-    VkSurfaceCapabilitiesKHR surface_capabilities{};
-    vector<VkSurfaceFormatKHR> formats;
-    vector<VkPresentModeKHR> present_modes;
-
-    /* format */ {
-        uint32_t format_count;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &format_count, nullptr);
-        formats.resize(format_count);    
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &format_count, formats.data());
-    }
-    /* present_modes */ {
-        uint32_t present_mode_count;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &present_mode_count, nullptr);
-        present_modes.resize(present_mode_count);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, nullptr, present_modes.data());
-    }
-    /* surface capabilities */ {
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
-    }
-
-    auto swapchain_properties = pick_swapchain_properties(window, surface_capabilities, formats, present_modes);
-
-    ASSERT(swapchain_properties.is_complete(), "Swapchain properties was not complete");
-
-    swapchain_create_info.imageExtent = swapchain_properties.extent.value();
-    swapchain_create_info.presentMode = swapchain_properties.present_mode.value();
-    swapchain_create_info.imageFormat = swapchain_properties.format.value().format;
-    swapchain_create_info.imageColorSpace = swapchain_properties.format.value().colorSpace;
-
-    VK_ASSERT(
-        vkCreateSwapchainKHR(
-            device, 
-            &swapchain_create_info, 
-            nullptr, 
-            &swapchain.handle
-        )
-    );
+    ASSERT(surface != VK_NULL_HANDLE, "Surface not created succesfully")
 }
 
 void vkapp::create_image_view(){}
@@ -295,13 +204,4 @@ std::optional<VkPhysicalDevice> vkapp::pick_physical_device(std::vector<VkPhysic
     }
 
     return {};
-}
-swapchain_properties pick_swapchain_properties(
-    GLFWwindow* window,
-    VkSurfaceCapabilitiesKHR &surface_capabilities,
-    std::vector<VkSurfaceFormatKHR> formats,
-    std::vector<VkPresentModeKHR> present_modes
-) {
-    swapchain_properties properties{};
-    return properties;
 }
