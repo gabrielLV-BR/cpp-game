@@ -11,6 +11,13 @@
 
 using namespace core;
 
+vkswapchain::vkswapchain() {
+    instance = VK_NULL_HANDLE;
+    device = VK_NULL_HANDLE;
+    handle = VK_NULL_HANDLE;
+    initialized = false;
+}
+
 vkswapchain::vkswapchain(
     GLFWwindow* window,
     VkInstance instance, 
@@ -51,8 +58,6 @@ vkswapchain::vkswapchain(
     structs::queue_family_indices family_indices = vkutils::get_queue_family_indices(physical_device, surface);
     uint32_t family_indices_array[] = {family_indices.graphics_family.value(), family_indices.present_family.value()};
 
-    
-
     // optimize if same family
     if(family_indices.graphics_family.value() != family_indices.present_family.value()) {
         swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -77,10 +82,59 @@ vkswapchain::vkswapchain(
             &handle
         )
     );
+
+    get_images(device);
+    get_image_views(device);
+
+    initialized = true;
 }
 
-vkswapchain::~vkswapchain() {
-    this->destroy();
+void vkswapchain::get_images(
+    VkDevice device
+) {
+    uint32_t image_count = 0;
+    vkGetSwapchainImagesKHR(device, handle, &image_count, nullptr);
+    
+    images.resize(image_count);
+    vkGetSwapchainImagesKHR(
+        device, 
+        handle, 
+        &image_count, 
+        images.data()
+    );
+}
+
+void vkswapchain::get_image_views(VkDevice device) {
+    image_views.resize(images.size());
+    
+    for(int i = 0; i < image_views.size(); i++) {
+        VkImageViewCreateInfo image_view_create_info{};
+        image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        image_view_create_info.image = images[i];
+        image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        image_view_create_info.format = format.format;
+
+        image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        image_view_create_info.subresourceRange.baseArrayLayer = 0;
+        image_view_create_info.subresourceRange.layerCount = 1;
+        image_view_create_info.subresourceRange.baseMipLevel = 0;
+        image_view_create_info.subresourceRange.levelCount = 1;
+
+        VK_ASSERT(
+            vkCreateImageView(
+                device,
+                &image_view_create_info,
+                nullptr,
+                &image_views[i]
+            )
+        );
+        
+    }
 }
 
 VkPresentModeKHR vkswapchain::pick_present_mode(
@@ -181,5 +235,20 @@ VkExtent2D vkswapchain::pick_extent(
 
 //TODO error when destroying, check it out
 void vkswapchain::destroy() {
-    vkDestroySwapchainKHR(device, handle, nullptr);
+    if(!initialized) return;
+    
+    if(image_views.size() > 0 ) {
+        for (auto &image_view : image_views)
+        {
+            vkDestroyImageView(device, image_view, nullptr);
+        }
+    }
+    if(handle != VK_NULL_HANDLE) 
+        vkDestroySwapchainKHR(device, handle, nullptr);
+
+    initialized = false;
+}
+
+vkswapchain::~vkswapchain() {
+    this->destroy();
 }
