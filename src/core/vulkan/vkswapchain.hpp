@@ -29,7 +29,6 @@ namespace core {
             VkSurfaceKHR
         );
 
-        ~vkswapchain();
         void destroy();
     
 

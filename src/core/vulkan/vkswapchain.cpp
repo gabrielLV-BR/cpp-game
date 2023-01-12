@@ -248,7 +248,3 @@ void vkswapchain::destroy() {
 
     initialized = false;
 }
-
-vkswapchain::~vkswapchain() {
-    this->destroy();
-}
