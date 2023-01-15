@@ -1,7 +1,9 @@
 #pragma once
 
-#include "core/vulkan/vkswapchain.hpp"
+#include "core/vulkan/vkshader.hpp"
 #include "core/vulkan/vkstructs.hpp"
+#include "core/vulkan/vkpipeline.hpp"
+#include "core/vulkan/vkswapchain.hpp"
 #include "components/components.hpp"
 
 #include <optional>
@@ -27,6 +29,9 @@ namespace core
         structs::queue_family_indices family_indices;
         core::vkswapchain swapchain;
 
+        core::vkshader vertex_shader, fragment_shader;
+        core::vkpipeline pipeline;
+
         vkapp(GLFWwindow *);
         ~vkapp();
 
@@ -38,8 +43,6 @@ namespace core
         void create_framebuffer();
         void create_render_pass();
         void create_pipeline();
-
-        components::vulkan_details get_details();
 
     private:
         // HELPER FUNCTIONS

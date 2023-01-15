@@ -10,7 +10,6 @@ namespace core {
     class vkswapchain
     {
         VkInstance instance;
-        VkDevice device;
 
         VkSwapchainKHR handle;
         VkExtent2D extent;
@@ -29,11 +28,11 @@ namespace core {
             VkSurfaceKHR
         );
 
-        void destroy();
+        void destroy(VkDevice);
     
-
         std::vector<VkImage> images;
         std::vector<VkImageView> image_views;
+        std::vector<VkFramebuffer> framebuffers;
 
     private:
 
@@ -43,5 +42,6 @@ namespace core {
 
         void get_images(VkDevice);
         void get_image_views(VkDevice);
+        void get_framebuffers(VkDevice);
     };
 }

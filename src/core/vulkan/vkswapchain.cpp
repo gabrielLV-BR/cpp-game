@@ -13,7 +13,6 @@ using namespace core;
 
 vkswapchain::vkswapchain() {
     instance = VK_NULL_HANDLE;
-    device = VK_NULL_HANDLE;
     handle = VK_NULL_HANDLE;
     initialized = false;
 }
@@ -24,7 +23,7 @@ vkswapchain::vkswapchain(
     VkPhysicalDevice physical_device, 
     VkDevice device,
     VkSurfaceKHR surface
-) : instance(instance), device(device) {
+) : instance(instance) {
     using std::vector;
 
     int width, height;
@@ -85,6 +84,7 @@ vkswapchain::vkswapchain(
 
     get_images(device);
     get_image_views(device);
+    get_framebuffers(device);
 
     initialized = true;
 }
@@ -233,8 +233,18 @@ VkExtent2D vkswapchain::pick_extent(
     return extent;   
 }
 
+void vkswapchain::get_framebuffers(VkDevice device) {
+    VkFramebufferCreateInfo framebuffer_info{};
+
+    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    
+    vkCreateFramebuffer(
+        device, &framebuffer_info, nullptr, nullptr 
+    );
+}
+
 //TODO error when destroying, check it out
-void vkswapchain::destroy() {
+void vkswapchain::destroy(VkDevice device) {
     if(!initialized) return;
     
     if(image_views.size() > 0 ) {

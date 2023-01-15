@@ -3,22 +3,30 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
-namespace core {
+#include "utils/assert.hpp"
+#include <string>
 
-    class vkshader {
+namespace core
+{
+    class vkshader
+    {
+    public:
+        enum shader_type
+        {
+            VERTEX = VK_SHADER_STAGE_VERTEX_BIT,
+            FRAGMENT = VK_SHADER_STAGE_FRAGMENT_BIT
+        };
+
+        VkShaderModule handle;
+        shader_type type;
+
+        vkshader();
 
         vkshader(
-            VkDevice device
-        ) {
-            VkShaderModuleCreateInfo shader_create_info{};
-            shader_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-            shader_create_info.flags = VK_SHADER_STAGE_VERTEX_BIT;
-            
-            
-            VkShaderModule shader_module;
-            vkCreateShaderModule(device, &shader_create_info, nullptr, &shader_module);
-        }        
+            VkDevice device,
+            std::string source,
+            shader_type type);
 
+        void destroy(VkDevice);
     };
-
 }

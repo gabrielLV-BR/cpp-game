@@ -3,6 +3,7 @@
 
 #include "utils/log.hpp"
 #include "utils/list.hpp"
+#include "utils/file.hpp"
 #include "utils/assert.hpp"
 #include "core/vulkan/vkstructs.hpp"
 
@@ -35,11 +36,26 @@ vkapp::vkapp(GLFWwindow* window) {
     this->create_logical_device();
     swapchain = vkswapchain(window, instance, physical_device, device, surface);
     //TODO fill in initialization order
+    std::string vertex_shader_source =
+        utils::file::read_contents(ASSETS"shaders/basic.vert.spv");
+    
+    std::string fragment_shader_source =
+        utils::file::read_contents(ASSETS"shaders/basic.frag.spv");
+
+    vertex_shader   = vkshader(device, vertex_shader_source, vkshader::shader_type::VERTEX);
+    fragment_shader = vkshader(device, fragment_shader_source, vkshader::shader_type::FRAGMENT);    
+
+    std::vector<vkshader> shaders{vertex_shader, fragment_shader}; 
+
+    pipeline = vkpipeline(shaders);
 }
 
 vkapp::~vkapp() {
     // destroy every object
-    swapchain.destroy();
+    vertex_shader.destroy(device);
+    fragment_shader.destroy(device);
+    swapchain.destroy(device);
+
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
@@ -177,11 +193,6 @@ void vkapp::create_framebuffer(){}
 void vkapp::create_render_pass(){}
 
 void vkapp::create_pipeline(){}
-
-components::vulkan_details vkapp::get_details() {
-    //TODO return struct with details
-    return {};
-}
 
 //
 
