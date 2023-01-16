@@ -234,13 +234,13 @@ VkExtent2D vkswapchain::pick_extent(
 }
 
 void vkswapchain::get_framebuffers(VkDevice device) {
-    VkFramebufferCreateInfo framebuffer_info{};
+    // VkFramebufferCreateInfo framebuffer_info{};
 
-    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    // framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     
-    vkCreateFramebuffer(
-        device, &framebuffer_info, nullptr, nullptr 
-    );
+    // vkCreateFramebuffer(
+    //     device, &framebuffer_info, nullptr, nullptr 
+    // );
 }
 
 //TODO error when destroying, check it out

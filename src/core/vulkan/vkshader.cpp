@@ -14,7 +14,6 @@ vkshader::vkshader(
 {
     VkShaderModuleCreateInfo shader_create_info{};
     shader_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shader_create_info.flags = this->type;
     shader_create_info.pCode = reinterpret_cast<const uint32_t *>(source.data());
     shader_create_info.codeSize = source.size();
 
