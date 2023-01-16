@@ -66,10 +66,18 @@ void vkapp::create_instance(){
 
     VkApplicationInfo app_create_info{};
     app_create_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_create_info.apiVersion = VK_API_VERSION_1_3;
-    app_create_info.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    
+    #ifdef VK_API_VERSION_1_3
+        app_create_info.apiVersion = VK_API_VERSION_1_3;
+        app_create_info.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+        app_create_info.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    #else 
+        app_create_info.apiVersion = VK_MAKE_VERSION(1, 3, 0);
+        app_create_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        app_create_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    #endif
+
     app_create_info.pApplicationName = "game";
-    app_create_info.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
     app_create_info.pEngineName = "GECK0";
 
     VkInstanceCreateInfo instance_create_info{};
