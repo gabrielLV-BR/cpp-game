@@ -47,11 +47,12 @@ vkapp::vkapp(GLFWwindow* window) {
 
     std::vector<vkshader> shaders{vertex_shader, fragment_shader}; 
 
-    pipeline = vkpipeline(shaders);
+    pipeline = vkpipeline(device, shaders);
 }
 
 vkapp::~vkapp() {
     // destroy every object
+    pipeline.destroy(device);
     vertex_shader.destroy(device);
     fragment_shader.destroy(device);
     swapchain.destroy(device);
