@@ -9,6 +9,7 @@
 namespace core {
     class vkswapchain
     {
+    public:
         VkInstance instance;
 
         VkSwapchainKHR handle;
@@ -16,9 +17,6 @@ namespace core {
         VkSurfaceFormatKHR format;
         VkPresentModeKHR present_mode;
 
-        bool initialized;
-
-    public:
         vkswapchain();
         vkswapchain(
             GLFWwindow*, 

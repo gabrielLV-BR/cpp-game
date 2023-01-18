@@ -1,6 +1,7 @@
 #pragma once
 
 #include "./vkshader.hpp"
+#include "./vkswapchain.hpp"
 
 #include <vector>
 
@@ -8,10 +9,11 @@ namespace core {
     class vkpipeline {
     public:
         vkpipeline();
-        vkpipeline(VkDevice, std::vector<vkshader>);
+        vkpipeline(VkDevice, core::vkswapchain&, std::vector<vkshader>&);
 
         VkPipeline handle;
         VkPipelineLayout layout;
+        VkRenderPass render_pass;
 
         void create_layout(VkDevice);
         void destroy(VkDevice);
@@ -27,6 +29,11 @@ namespace core {
             VkPipelineColorBlendAttachmentState
         );
         VkPipelineColorBlendAttachmentState create_color_blend_attachment_state();
+        VkPipelineViewportStateCreateInfo get_viewport_state_info(
+            VkRect2D&, VkViewport&
+        );
+
+        void create_render_pass(VkDevice, core::vkswapchain&);
         
     };
 }

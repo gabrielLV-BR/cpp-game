@@ -8,7 +8,8 @@ vkpipeline::vkpipeline() {}
 
 vkpipeline::vkpipeline(
     VkDevice device,
-    std::vector<vkshader> shaders
+    vkswapchain& swapchain,
+    std::vector<vkshader>& shaders
 ) {
     std::vector<VkDynamicState> dynamic_states = {
         VK_DYNAMIC_STATE_VIEWPORT,
@@ -16,6 +17,19 @@ vkpipeline::vkpipeline(
     };
 
     this->create_layout(device);
+    this->create_render_pass(device, swapchain);
+
+    VkRect2D scissor;
+    scissor.extent = swapchain.extent;
+    scissor.offset = {};
+
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width  = swapchain.extent.width;
+    viewport.height = swapchain.extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
 
     auto shader_stages_info     = get_shader_stage_infos(shaders);
     auto dynamic_state_info     = get_dynamic_state_info(dynamic_states);
@@ -23,9 +37,105 @@ vkpipeline::vkpipeline(
     auto input_assembly_info    = get_input_assembly_info();
     auto rasterization_info     = get_rasterization_state_info();    
     auto multisample_info       = get_multisample_state_info();
+    auto viewport_state_info    = get_viewport_state_info(scissor, viewport);
 
     auto color_blend_attachment_info = create_color_blend_attachment_state();
     auto color_blend_info = get_color_blend_state_info(color_blend_attachment_info);
+
+    VkGraphicsPipelineCreateInfo pipeline_info{};
+    pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipeline_info.stageCount = 2;
+    pipeline_info.pStages = shader_stages_info.data();
+    pipeline_info.layout = layout;
+    pipeline_info.renderPass = render_pass;
+    pipeline_info.subpass = 0;
+
+    pipeline_info.pDynamicState = &dynamic_state_info;
+    pipeline_info.pViewportState = &viewport_state_info;
+    pipeline_info.pColorBlendState = &color_blend_info;
+    pipeline_info.pMultisampleState = &multisample_info;
+    pipeline_info.pVertexInputState = &vertex_input_info;
+    pipeline_info.pRasterizationState = &rasterization_info;
+    pipeline_info.pInputAssemblyState = &input_assembly_info;
+    pipeline_info.pDepthStencilState = nullptr;
+
+    VK_ASSERT(
+        vkCreateGraphicsPipelines(
+            device,
+            VK_NULL_HANDLE, // no cache for now
+            1,
+            &pipeline_info,
+            nullptr,
+            &handle
+        )
+    );
+
+}
+
+void vkpipeline::create_render_pass(
+    VkDevice device,
+    vkswapchain& swapchain
+) {
+    VkAttachmentDescription color_attachment{};
+    color_attachment.format = swapchain.format.format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+    // clear color attachment when framebuffer is loaded
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    // since we want to see stuff, we store operations
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    // since we aren't using stencil buffers, we don't care
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+    // since we're clearing the attachment, we don't care about layout
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    // we're going to show the image, so it's final layout must be
+    // present
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    // we're only using one Attach Descriptor (color_attachment)
+    // it's index is 0 and is used for color
+    VkAttachmentReference color_attach_ref{};
+    color_attach_ref.attachment = 0;
+    color_attach_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass_description{};
+    subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass_description.colorAttachmentCount = 1;
+    subpass_description.pColorAttachments = &color_attach_ref;
+    // the index of the attachment corresponds to the
+    // layout(location=X) index of shader 
+
+    VkRenderPassCreateInfo render_pass_info{};
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_info.attachmentCount = 1;
+    render_pass_info.pAttachments = &color_attachment;
+    render_pass_info.subpassCount = 1;
+    render_pass_info.pSubpasses = &subpass_description;
+
+    VK_ASSERT(
+        vkCreateRenderPass(
+            device,
+            &render_pass_info,
+            nullptr,
+            &render_pass
+        )
+    );
+}
+
+VkPipelineViewportStateCreateInfo vkpipeline::get_viewport_state_info(
+    VkRect2D& scissor, VkViewport& viewport
+) {
+    VkPipelineViewportStateCreateInfo viewport_state_info{};
+
+    viewport_state_info.scissorCount = 1;
+    viewport_state_info.pScissors    = &scissor;
+    viewport_state_info.viewportCount = 1;
+    viewport_state_info.pViewports    = &viewport;
+
+    return viewport_state_info;
 }
 
 void vkpipeline::create_layout(VkDevice device) {
@@ -155,7 +265,9 @@ std::vector<VkPipelineShaderStageCreateInfo> vkpipeline::get_shader_stage_infos(
     {
         VkPipelineShaderStageCreateInfo shader_stage_info{};
         shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shader_stage_info.stage = static_cast<VkShaderStageFlagBits>(shader.type);
+
+        shader_stage_info.stage = shader.type == vkshader::shader_type::FRAGMENT ?
+            VK_SHADER_STAGE_FRAGMENT_BIT : VK_SHADER_STAGE_VERTEX_BIT;
         shader_stage_info.module = shader.handle;
         shader_stage_info.pName = "main";
 
@@ -175,5 +287,6 @@ VkPipelineDynamicStateCreateInfo vkpipeline::get_dynamic_state_info(std::vector<
 
 void vkpipeline::destroy(VkDevice device) {
     vkDestroyPipelineLayout(device, layout, nullptr);
+    vkDestroyRenderPass(device, render_pass, nullptr);
     vkDestroyPipeline(device, handle, nullptr);
 }

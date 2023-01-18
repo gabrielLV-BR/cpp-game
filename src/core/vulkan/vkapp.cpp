@@ -47,7 +47,7 @@ vkapp::vkapp(GLFWwindow* window) {
 
     std::vector<vkshader> shaders{vertex_shader, fragment_shader}; 
 
-    pipeline = vkpipeline(device, shaders);
+    pipeline = vkpipeline(device, swapchain, shaders);
 }
 
 vkapp::~vkapp() {

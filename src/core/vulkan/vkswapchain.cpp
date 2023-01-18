@@ -14,7 +14,6 @@ using namespace core;
 vkswapchain::vkswapchain() {
     instance = VK_NULL_HANDLE;
     handle = VK_NULL_HANDLE;
-    initialized = false;
 }
 
 vkswapchain::vkswapchain(
@@ -85,8 +84,6 @@ vkswapchain::vkswapchain(
     get_images(device);
     get_image_views(device);
     get_framebuffers(device);
-
-    initialized = true;
 }
 
 void vkswapchain::get_images(
@@ -245,8 +242,6 @@ void vkswapchain::get_framebuffers(VkDevice device) {
 
 //TODO error when destroying, check it out
 void vkswapchain::destroy(VkDevice device) {
-    if(!initialized) return;
-    
     if(image_views.size() > 0 ) {
         for (auto &image_view : image_views)
         {
@@ -255,6 +250,4 @@ void vkswapchain::destroy(VkDevice device) {
     }
     if(handle != VK_NULL_HANDLE) 
         vkDestroySwapchainKHR(device, handle, nullptr);
-
-    initialized = false;
 }
