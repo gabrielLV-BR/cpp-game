@@ -2,6 +2,8 @@
 
 #include "utils/assert.hpp"
 
+#include <iostream>
+
 using namespace core;
 
 vkpipeline::vkpipeline() {}
@@ -37,14 +39,14 @@ vkpipeline::vkpipeline(
     auto input_assembly_info    = get_input_assembly_info();
     auto rasterization_info     = get_rasterization_state_info();    
     auto multisample_info       = get_multisample_state_info();
-    auto viewport_state_info    = get_viewport_state_info(scissor, viewport);
+    auto viewport_state_info    = get_viewport_state_info(&scissor, &viewport);
 
     auto color_blend_attachment_info = create_color_blend_attachment_state();
-    auto color_blend_info = get_color_blend_state_info(color_blend_attachment_info);
+    auto color_blend_info = get_color_blend_state_info(&color_blend_attachment_info);
 
     VkGraphicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipeline_info.stageCount = 2;
+    pipeline_info.stageCount = shader_stages_info.size();
     pipeline_info.pStages = shader_stages_info.data();
     pipeline_info.layout = layout;
     pipeline_info.renderPass = render_pass;
@@ -126,14 +128,15 @@ void vkpipeline::create_render_pass(
 }
 
 VkPipelineViewportStateCreateInfo vkpipeline::get_viewport_state_info(
-    VkRect2D& scissor, VkViewport& viewport
+    VkRect2D* scissor_pointer, VkViewport* viewport_pointer
 ) {
     VkPipelineViewportStateCreateInfo viewport_state_info{};
 
+    viewport_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewport_state_info.scissorCount = 1;
-    viewport_state_info.pScissors    = &scissor;
+    viewport_state_info.pScissors    = scissor_pointer;
     viewport_state_info.viewportCount = 1;
-    viewport_state_info.pViewports    = &viewport;
+    viewport_state_info.pViewports    = viewport_pointer;
 
     return viewport_state_info;
 }
@@ -157,13 +160,13 @@ void vkpipeline::create_layout(VkDevice device) {
 }
 
 VkPipelineColorBlendStateCreateInfo vkpipeline::get_color_blend_state_info(
-    VkPipelineColorBlendAttachmentState color_blend_attachment_state
+    VkPipelineColorBlendAttachmentState* color_blend_attachment_state
 ) {
     VkPipelineColorBlendStateCreateInfo color_blend_info{};
 
     color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     color_blend_info.attachmentCount = 1;
-    color_blend_info.pAttachments = &color_blend_attachment_state;
+    color_blend_info.pAttachments = color_blend_attachment_state;
     
     // disable logicOp as it overwrites blending specified in color blend attachment
     color_blend_info.logicOpEnable = VK_FALSE;
@@ -194,6 +197,8 @@ VkPipelineColorBlendAttachmentState vkpipeline::create_color_blend_attachment_st
     color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    return color_blend_attachment;
 }
 
 VkPipelineMultisampleStateCreateInfo vkpipeline::get_multisample_state_info() {
@@ -259,17 +264,15 @@ VkPipelineVertexInputStateCreateInfo vkpipeline::get_vertex_input_info() {
 std::vector<VkPipelineShaderStageCreateInfo> vkpipeline::get_shader_stage_infos(
     std::vector<vkshader> shaders
 ) {
-    std::vector<VkPipelineShaderStageCreateInfo> shader_stages_create_info(shaders.size());
+    std::vector<VkPipelineShaderStageCreateInfo> shader_stages_create_info;
 
     for (auto &shader : shaders)
     {
         VkPipelineShaderStageCreateInfo shader_stage_info{};
-        shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-
-        shader_stage_info.stage = shader.type == vkshader::shader_type::FRAGMENT ?
-            VK_SHADER_STAGE_FRAGMENT_BIT : VK_SHADER_STAGE_VERTEX_BIT;
+        shader_stage_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shader_stage_info.stage  = shader.stage_flags;
         shader_stage_info.module = shader.handle;
-        shader_stage_info.pName = "main";
+        shader_stage_info.pName  = "main";
 
         shader_stages_create_info.push_back(shader_stage_info);
     }

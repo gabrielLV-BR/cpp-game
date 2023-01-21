@@ -4,28 +4,23 @@
 #include "GLFW/glfw3.h"
 
 #include "utils/assert.hpp"
-#include <string>
+#include <vector>
 
 namespace core
 {
     class vkshader
     {
     public:
-        enum shader_type
-        {
-            VERTEX = VK_SHADER_STAGE_VERTEX_BIT,
-            FRAGMENT = VK_SHADER_STAGE_FRAGMENT_BIT
-        };
 
         VkShaderModule handle;
-        shader_type type;
+        VkShaderStageFlagBits stage_flags;
 
         vkshader();
 
         vkshader(
             VkDevice device,
-            std::string source,
-            shader_type type);
+            std::vector<char> source,
+            VkShaderStageFlagBits);
 
         void destroy(VkDevice);
     };

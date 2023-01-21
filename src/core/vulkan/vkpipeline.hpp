@@ -26,11 +26,11 @@ namespace core {
         VkPipelineRasterizationStateCreateInfo get_rasterization_state_info();
         VkPipelineMultisampleStateCreateInfo get_multisample_state_info();
         VkPipelineColorBlendStateCreateInfo get_color_blend_state_info(
-            VkPipelineColorBlendAttachmentState
+            VkPipelineColorBlendAttachmentState*
         );
         VkPipelineColorBlendAttachmentState create_color_blend_attachment_state();
         VkPipelineViewportStateCreateInfo get_viewport_state_info(
-            VkRect2D&, VkViewport&
+            VkRect2D*, VkViewport*
         );
 
         void create_render_pass(VkDevice, core::vkswapchain&);

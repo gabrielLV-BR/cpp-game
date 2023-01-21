@@ -9,8 +9,8 @@ vkshader::vkshader()
 
 vkshader::vkshader(
     VkDevice device,
-    std::string source,
-    shader_type type) : type(type)
+    std::vector<char> source,
+    VkShaderStageFlagBits shader_flags) : stage_flags(shader_flags)
 {
     VkShaderModuleCreateInfo shader_create_info{};
     shader_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

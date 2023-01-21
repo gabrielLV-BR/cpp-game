@@ -36,14 +36,14 @@ vkapp::vkapp(GLFWwindow* window) {
     this->create_logical_device();
     swapchain = vkswapchain(window, instance, physical_device, device, surface);
     //TODO fill in initialization order
-    std::string vertex_shader_source =
-        utils::file::read_contents(ASSETS"shaders/basic.vert.spv");
+    auto vertex_shader_source =
+        utils::file::read_binary(ASSETS"shaders/basic.vert.spv");
     
-    std::string fragment_shader_source =
-        utils::file::read_contents(ASSETS"shaders/basic.frag.spv");
+    auto fragment_shader_source =
+        utils::file::read_binary(ASSETS"shaders/basic.frag.spv");
 
-    vertex_shader   = vkshader(device, vertex_shader_source, vkshader::shader_type::VERTEX);
-    fragment_shader = vkshader(device, fragment_shader_source, vkshader::shader_type::FRAGMENT);    
+    vertex_shader   = vkshader(device, vertex_shader_source, VK_SHADER_STAGE_VERTEX_BIT);
+    fragment_shader = vkshader(device, fragment_shader_source, VK_SHADER_STAGE_FRAGMENT_BIT);
 
     std::vector<vkshader> shaders{vertex_shader, fragment_shader}; 
 
