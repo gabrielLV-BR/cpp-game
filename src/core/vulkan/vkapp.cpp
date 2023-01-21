@@ -34,8 +34,9 @@ vkapp::vkapp(GLFWwindow* window) {
     this->create_surface(window);
     family_indices = vkutils::get_queue_family_indices(physical_device, surface);
     this->create_logical_device();
+    
     swapchain = vkswapchain(window, instance, physical_device, device, surface);
-    //TODO fill in initialization order
+
     auto vertex_shader_source =
         utils::file::read_binary(ASSETS"shaders/basic.vert.spv");
     
@@ -48,6 +49,8 @@ vkapp::vkapp(GLFWwindow* window) {
     std::vector<vkshader> shaders{vertex_shader, fragment_shader}; 
 
     pipeline = vkpipeline(device, swapchain, shaders);
+
+    swapchain.create_framebuffers(pipeline.render_pass, device);
 }
 
 vkapp::~vkapp() {

@@ -9,6 +9,9 @@
 namespace core {
     class vkswapchain
     {
+    private:
+        std::vector<VkFramebuffer> framebuffers;
+
     public:
         VkInstance instance;
 
@@ -30,16 +33,16 @@ namespace core {
     
         std::vector<VkImage> images;
         std::vector<VkImageView> image_views;
-        std::vector<VkFramebuffer> framebuffers;
+        std::vector<VkFramebuffer> get_framebuffers();
+
+        void create_framebuffers(VkRenderPass, VkDevice);
 
     private:
-
         VkExtent2D pick_extent(GLFWwindow*, VkSurfaceCapabilitiesKHR&);
         VkPresentModeKHR pick_present_mode(VkPhysicalDevice, VkSurfaceKHR);
         VkSurfaceFormatKHR pick_format(VkPhysicalDevice, VkSurfaceKHR);
 
         void get_images(VkDevice);
         void get_image_views(VkDevice);
-        void get_framebuffers(VkDevice);
     };
 }

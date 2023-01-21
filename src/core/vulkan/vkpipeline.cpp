@@ -71,7 +71,6 @@ vkpipeline::vkpipeline(
             &handle
         )
     );
-
 }
 
 void vkpipeline::create_render_pass(

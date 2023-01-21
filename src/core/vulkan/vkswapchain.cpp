@@ -83,7 +83,6 @@ vkswapchain::vkswapchain(
 
     get_images(device);
     get_image_views(device);
-    get_framebuffers(device);
 }
 
 void vkswapchain::get_images(
@@ -230,24 +229,51 @@ VkExtent2D vkswapchain::pick_extent(
     return extent;   
 }
 
-void vkswapchain::get_framebuffers(VkDevice device) {
-    // VkFramebufferCreateInfo framebuffer_info{};
+void vkswapchain::create_framebuffers(
+    VkRenderPass render_pass,
+    VkDevice device
+) {
+    framebuffers.resize(image_views.size());
 
-    // framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    
-    // vkCreateFramebuffer(
-    //     device, &framebuffer_info, nullptr, nullptr 
-    // );
+    for(int i = 0; i < image_views.size(); i++) {
+        VkImageView attachments[] = {
+            image_views[i]
+        };
+
+        VkFramebufferCreateInfo framebuffer_info{};
+        framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebuffer_info.renderPass = render_pass;
+        framebuffer_info.attachmentCount = 1;
+        framebuffer_info.pAttachments = attachments;
+        framebuffer_info.width = extent.width;
+        framebuffer_info.height = extent.height;
+        framebuffer_info.layers = 1;
+
+        VK_ASSERT(
+            vkCreateFramebuffer(
+                device, 
+                &framebuffer_info, 
+                nullptr, 
+                &framebuffers[i]
+            )
+        );
+    }
 }
 
-//TODO error when destroying, check it out
+std::vector<VkFramebuffer> vkswapchain::get_framebuffers() {
+    return framebuffers;
+}
+
 void vkswapchain::destroy(VkDevice device) {
-    if(image_views.size() > 0 ) {
-        for (auto &image_view : image_views)
-        {
-            vkDestroyImageView(device, image_view, nullptr);
-        }
+    if(handle == VK_NULL_HANDLE) return;
+
+    for(auto& framebuffer : framebuffers) {
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
-    if(handle != VK_NULL_HANDLE) 
-        vkDestroySwapchainKHR(device, handle, nullptr);
+
+    for (auto &image_view : image_views)
+    {
+        vkDestroyImageView(device, image_view, nullptr);
+    }
+    vkDestroySwapchainKHR(device, handle, nullptr);
 }
